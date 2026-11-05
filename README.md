@@ -40,4 +40,3 @@ Bağımlılık yönü: `API → Business → Data`. Web katmanı veritabanına e
 - **Yetkilendirme:** Kasa uç noktaları `[Authorize]` ile korunur. `UserId` istemciden alınmaz, her zaman JWT claim'inden okunur; bu sayede bir kullanıcı başkasının kayıtlarına erişemez.
 - **CORS** yalnızca Web uygulamasının adreslerine izin verir.
 
-> ⚠️ `SifreKasasi.API/appsettings.json` içindeki `EncryptionKey` ve `JwtSettings:SecurityKey` değerleri ödev için **örnek** değerlerdir. Gerçek ortamda bu anahtarlar kaynak koda konmamalı; **user-secrets** (geliştirme), **environment variable** veya **Azure Key Vault** gibi bir gizli bilgi yöneticisi üzerinden verilmelidir.
