@@ -1,0 +1,195 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Şifre Kasası</title>
+</head>
+<body>
+    <h1>Şifre Kasası</h1>
+
+    <div id="auth-bolumu">
+        <h2>Kayıt Ol</h2>
+        <input type="text" id="reg-kadi" placeholder="Kullanıcı adı"><br>
+        <input type="password" id="reg-sifre" placeholder="Şifre"><br>
+        <input type="text" id="reg-mail" placeholder="Mail"><br>
+        <input type="text" id="reg-ad" placeholder="Ad"><br>
+        <input type="text" id="reg-soyad" placeholder="Soyad"><br>
+        <button id="btn-kayit">Kayıt Ol</button>
+
+        <h2>Giriş Yap</h2>
+        <input type="text" id="giris-kadi" placeholder="Kullanıcı adı"><br>
+        <input type="password" id="giris-sifre" placeholder="Şifre"><br>
+        <button id="btn-giris">Giriş Yap</button>
+    </div>
+
+    <div id="kasa-bolumu" style="display:none;">
+        <button id="btn-cikis">Çıkış Yap</button>
+
+        <h2>Kayıt Ekle / Düzenle</h2>
+        <input type="hidden" id="duzenlenen-id">
+        <input type="text" id="site" placeholder="Site adı"><br>
+        <input type="text" id="kadi" placeholder="Kullanıcı adı"><br>
+        <input type="text" id="sifre" placeholder="Şifre"><br>
+        <button id="btn-kaydet">Kaydet</button>
+
+        <h2>Kayıtlarım</h2>
+        <table border="1">
+            <thead>
+                <tr><th>Site</th><th>Kullanıcı Adı</th><th>Şifre</th><th>İşlem</th></tr>
+            </thead>
+            <tbody id="liste"></tbody>
+        </table>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+            var apiUrl = "https://localhost:7112/api";
+            var token = localStorage.getItem("token");
+
+            function hataGoster(xhr) {
+                if (xhr.status === 401 && token) {
+                    cikis();
+                    alert("Oturum bitti, tekrar giriş yap.");
+                    return;
+                }
+                var mesaj = xhr.responseJSON && xhr.responseJSON.message;
+                alert(mesaj || "Bir hata oluştu, alanları kontrol et.");
+            }
+
+            function kasayiAc() {
+                $("#auth-bolumu").hide();
+                $("#kasa-bolumu").show();
+                listele();
+            }
+
+            function cikis() {
+                localStorage.removeItem("token");
+                token = null;
+                $("#kasa-bolumu").hide();
+                $("#auth-bolumu").show();
+                formuTemizle();
+            }
+
+            function formuTemizle() {
+                $("#duzenlenen-id").val("");
+                $("#site").val("");
+                $("#kadi").val("");
+                $("#sifre").val("");
+            }
+            function listele() {
+                $.ajax({
+                    url: apiUrl + "/Vault",
+                    type: "GET",
+                    headers: { Authorization: "Bearer " + token }
+                }).done(function (kayitlar) {
+                    $("#liste").empty();
+
+                    kayitlar.forEach(function (k) {
+                        var satir = $("<tr>");
+                        satir.append($("<td>").text(k.siteName));
+                        satir.append($("<td>").text(k.username));
+                        satir.append($("<td>").text(k.password));
+
+                        var duzenleBtn = $("<button>").text("Düzenle").click(function () {
+                            $("#duzenlenen-id").val(k.id);
+                            $("#site").val(k.siteName);
+                            $("#kadi").val(k.username);
+                            $("#sifre").val(k.password);
+                        });
+
+                        var silBtn = $("<button>").text("Sil").click(function () {
+                            kayitSil(k.id);
+                        });
+
+                        satir.append($("<td>").append(duzenleBtn).append(silBtn));
+                        $("#liste").append(satir);
+                    });
+                }).fail(hataGoster);
+            }
+
+            function kayitSil(id) {
+                $.ajax({
+                    url: apiUrl + "/Vault/" + id,
+                    type: "DELETE",
+                    headers: { Authorization: "Bearer " + token }
+                }).done(function () {
+                    formuTemizle(); 
+                    listele();
+                }).fail(hataGoster);
+            }
+
+            if (token) {
+                kasayiAc();
+            }
+
+            $("#btn-kayit").click(function () {
+                var veri = {
+                    username: $("#reg-kadi").val(),
+                    password: $("#reg-sifre").val(),
+                    email: $("#reg-mail").val(),
+                    firstName: $("#reg-ad").val(),
+                    lastName: $("#reg-soyad").val()
+                };
+
+                $.ajax({
+                    url: apiUrl + "/Auth/register",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(veri)
+                }).done(function () {
+                    alert("Kayıt oldun, şimdi giriş yapabilirsin.");
+                }).fail(hataGoster);
+            });
+
+            $("#btn-giris").click(function () {
+                var veri = {
+                    username: $("#giris-kadi").val(),
+                    password: $("#giris-sifre").val()
+                };
+
+                $.ajax({
+                    url: apiUrl + "/Auth/login",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(veri)
+                }).done(function (cevap) {
+                    token = cevap.token;
+                    localStorage.setItem("token", token);
+                    kasayiAc();
+                }).fail(hataGoster);
+            });
+
+            $("#btn-cikis").click(cikis);
+
+            $("#btn-kaydet").click(function () {
+                var id = $("#duzenlenen-id").val();
+                var veri = {
+                    siteName: $("#site").val(),
+                    username: $("#kadi").val(),
+                    password: $("#sifre").val()
+                };
+
+                var url = apiUrl + "/Vault";
+                var tip = "POST";
+                if (id) {
+                    url = apiUrl + "/Vault/" + id;
+                    tip = "PUT";
+                }
+
+                $.ajax({
+                    url: url,
+                    type: tip,
+                    contentType: "application/json",
+                    headers: { Authorization: "Bearer " + token },
+                    data: JSON.stringify(veri)
+                }).done(function () {
+                    formuTemizle();
+                    listele();
+                }).fail(hataGoster);
+            });
+    </script>
+</body>
+</html>

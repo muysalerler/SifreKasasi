@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SifreKasasi.API/SifreKasasi.API.csproj" />
+  <Project Path="SifreKasasi.Business/SifreKasasi.Business.csproj" />
+  <Project Path="SifreKasasi.Data/SifreKasasi.Data.csproj" />
+  <Project Path="SifreKasasi.Web/SifreKasasi.Web.csproj" />
+</Solution>
